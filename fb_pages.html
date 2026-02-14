@@ -7,8 +7,6 @@
 
 <style>
   body { margin:0; font-family: Arial, sans-serif; background:#f2f2f2; }
-
-  /* HEADER - Facebook color */
   header {
     background: #1877f2;
     height: 70px;
@@ -19,12 +17,10 @@
   header img { height: 48px; }
 
   .table-wrapper { overflow-x:auto; padding:1rem; }
-
   table { width:100%; border-collapse:collapse; background:white; min-width:600px; }
   th, td { border:1px solid #ccc; padding:0.5rem; text-align:center; }
   th { background:#e6e6e6; font-weight:bold; }
   td.brand-logo img { height:42px; max-width:120px; object-fit:contain; }
-
   input[type="number"] { width:90px; text-align:center; padding:0.3rem; }
 
   .diff { font-weight:bold; }
@@ -35,32 +31,35 @@
   .save-container { text-align:center; margin:1.5rem 0 2rem; }
   button { padding:0.6rem 1.4rem; background:#1877f2; color:white; border:none; border-radius:6px; cursor:pointer; }
 
-  /* Loading overlay */
-  #loadingOverlay {
-    display: none;
+  /* Floating notifications */
+  #notification {
     position: fixed;
-    top:0; left:0;
-    width:100%; height:100%;
-    background: rgba(0,0,0,0.4);
-    z-index:1000;
-    justify-content:center;
-    align-items:center;
-    color:white;
-    font-size:1.5rem;
-    font-weight:bold;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1002;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    font-weight: bold;
+    display: none;
+    color: white;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
   }
 
-  /* Banners */
-  .banner {
-    display:none;
-    padding:0.8rem 1rem;
-    text-align:center;
-    font-weight:bold;
-    border-radius:4px;
-    margin:0.5rem 1rem;
+  /* Loading overlay */
+  #loadingOverlay {
+    position: fixed;
+    top:0; left:0; right:0; bottom:0;
+    background: rgba(0,0,0,0.3);
+    display: none;
+    z-index: 1001;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+    color: white;
+    font-weight: bold;
   }
-  .banner.success { background: #4CAF50; color: white; }
-  .banner.error { background: #F44336; color: white; }
 </style>
 </head>
 
@@ -69,9 +68,6 @@
 <header>
   <img src="logo.svg" alt="Company Logo">
 </header>
-
-<div id="successBanner" class="banner success"></div>
-<div id="errorBanner" class="banner error"></div>
 
 <div class="table-wrapper">
   <table id="fbTable">
@@ -91,6 +87,9 @@
   <button id="saveBtn">SAVE</button>
 </div>
 
+<!-- Notifications -->
+<div id="notification"></div>
+<!-- Loading overlay -->
 <div id="loadingOverlay">Saving...</div>
 
 <script>
@@ -108,23 +107,18 @@ const BRANDS = [
 
 const tbody = document.querySelector("#fbTable tbody");
 const saveBtn = document.getElementById("saveBtn");
-const overlay = document.getElementById("loadingOverlay");
-const successBanner = document.getElementById("successBanner");
-const errorBanner = document.getElementById("errorBanner");
+const loadingOverlay = document.getElementById("loadingOverlay");
 let OLD_VALUES = {};
 
 /* ================================
-   HELPERS
+   HELPER: Show Notification
 ================================= */
-function showBanner(bannerEl, msg, duration=3000) {
-  bannerEl.textContent = msg;
-  bannerEl.style.display = "block";
-  setTimeout(() => { bannerEl.style.display = "none"; }, duration);
-}
-
-function setSaving(isSaving) {
-  saveBtn.disabled = isSaving;
-  overlay.style.display = isSaving ? "flex" : "none";
+function showNotification(message, type="success", duration=3000) {
+  const notif = document.getElementById("notification");
+  notif.textContent = message;
+  notif.style.background = type === "success" ? "green" : "red";
+  notif.style.display = "block";
+  setTimeout(() => { notif.style.display = "none"; }, duration);
 }
 
 /* ================================
@@ -138,9 +132,8 @@ function loadOldValues() {
       buildTable();
     })
     .catch(() => {
-      OLD_VALUES = {};
+      showNotification("Offline mode: old values set to 0", "error");
       buildTable();
-      showBanner(errorBanner, "Offline mode: old values set to 0");
     });
 }
 
@@ -154,19 +147,23 @@ function buildTable() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td class="brand-logo">
-        <img src="brands/${brand}.svg" alt="${brand}" onerror="this.src='brands/placeholder.svg'">
+        <img src="brands/${brand}.svg" alt="${brand}"
+             onerror="this.src='brands/placeholder.svg'">
       </td>
       <td class="old-val">${oldVal}</td>
       <td><input type="number" class="new-val" min="0"></td>
       <td class="diff zero">0</td>
     `;
+
     const input = tr.querySelector(".new-val");
     const diffEl = tr.querySelector(".diff");
+
     input.addEventListener("input", () => {
       const diff = Number(input.value || 0) - oldVal;
       diffEl.textContent = diff;
       diffEl.className = "diff " + (diff > 0 ? "positive" : diff < 0 ? "negative" : "zero");
     });
+
     tbody.appendChild(tr);
   });
 }
@@ -183,7 +180,9 @@ function saveData() {
     return { brand, new: newVal, diff: newVal - oldVal };
   });
 
-  setSaving(true);
+  // Show overlay & disable button
+  loadingOverlay.style.display = "flex";
+  saveBtn.disabled = true;
 
   fetch(WEB_APP_URL, {
     method: "POST",
@@ -193,18 +192,21 @@ function saveData() {
   .then(res => res.json())
   .then(data => {
     if(data.status === "success") {
-      showBanner(successBanner, "Saved successfully!");
-      loadOldValues(); // Auto reload old values
+      showNotification("Saved successfully!", "success");
+      loadOldValues(); // auto-reload old values
     } else {
-      showBanner(errorBanner, "Error saving: " + data.message);
+      showNotification("Error saving: " + data.message, "error");
     }
   })
-  .catch(err => showBanner(errorBanner, "Network error: " + err.message))
-  .finally(() => setSaving(false));
+  .catch(err => showNotification("Network error: " + err.message, "error"))
+  .finally(() => {
+    loadingOverlay.style.display = "none";
+    saveBtn.disabled = false;
+  });
 }
 
 /* ================================
-   EVENTS
+   EVENT LISTENERS
 ================================= */
 saveBtn.addEventListener("click", saveData);
 
@@ -213,5 +215,6 @@ saveBtn.addEventListener("click", saveData);
 ================================= */
 loadOldValues();
 </script>
+
 </body>
 </html>
