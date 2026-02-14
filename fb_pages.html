@@ -34,6 +34,34 @@
 
   .save-container { text-align:center; margin:1.5rem 0 2rem; }
   button { padding:0.6rem 1.4rem; background:#1877f2; color:white; border:none; border-radius:6px; cursor:pointer; }
+
+  /* Loading overlay */
+  #loadingOverlay {
+    display:none;
+    position: fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background: rgba(0,0,0,0.4);
+    z-index:1000;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    color:white;
+    font-size:1.5rem;
+    font-weight:bold;
+  }
+
+  /* Message banner */
+  #messageBanner {
+    display:none;
+    padding:0.7rem;
+    margin-bottom:1rem;
+    text-align:center;
+    font-weight:bold;
+    border-radius:4px;
+  }
 </style>
 </head>
 
@@ -44,6 +72,7 @@
 </header>
 
 <div class="table-wrapper">
+  <div id="messageBanner"></div>
   <table id="fbTable">
     <thead>
       <tr>
@@ -61,6 +90,8 @@
   <button id="saveBtn">SAVE</button>
 </div>
 
+<div id="loadingOverlay">Saving...</div>
+
 <script>
 /* ================================
    CONFIG
@@ -75,10 +106,28 @@ const BRANDS = [
 ];
 
 const tbody = document.querySelector("#fbTable tbody");
+const saveBtn = document.getElementById("saveBtn");
 let OLD_VALUES = {};
 
 /* ================================
-   LOAD OLD VALUES FROM SHEET
+   HELPERS
+================================= */
+function setSaving(isSaving) {
+  saveBtn.disabled = isSaving;
+  document.getElementById("loadingOverlay").style.display = isSaving ? "flex" : "none";
+}
+
+function showBanner(msg, type="success") {
+  const banner = document.getElementById("messageBanner");
+  banner.style.display = "block";
+  banner.textContent = msg;
+  banner.style.background = type === "success" ? "#4CAF50" : "#F44336";
+  banner.style.color = "white";
+  setTimeout(() => { banner.style.display = "none"; }, 3000);
+}
+
+/* ================================
+   LOAD OLD VALUES
 ================================= */
 function loadOldValues() {
   fetch(WEB_APP_URL)
@@ -88,7 +137,8 @@ function loadOldValues() {
       buildTable();
     })
     .catch(() => {
-      alert("Offline mode: old values set to 0");
+      OLD_VALUES = {};
+      showBanner("Offline mode: old values set to 0", "error");
       buildTable();
     });
 }
@@ -105,8 +155,7 @@ function buildTable() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td class="brand-logo">
-        <img src="brands/${brand}.svg" alt="${brand}"
-             onerror="this.src='brands/placeholder.svg'">
+        <img src="brands/${brand}.svg" alt="${brand}" onerror="this.src='brands/placeholder.svg'">
       </td>
       <td class="old-val">${oldVal}</td>
       <td><input type="number" class="new-val" min="0"></td>
@@ -127,17 +176,18 @@ function buildTable() {
 }
 
 /* ================================
-   SAVE TO GOOGLE SHEET
+   SAVE DATA
 ================================= */
 function saveData() {
   const rows = [...tbody.querySelectorAll("tr")];
-
   const payload = rows.map(row => {
     const brand = row.querySelector("img").alt;
     const oldVal = Number(row.querySelector(".old-val").textContent);
     const newVal = Number(row.querySelector(".new-val").value || 0);
     return { brand, new: newVal, diff: newVal - oldVal };
   });
+
+  setSaving(true);
 
   fetch(WEB_APP_URL, {
     method: "POST",
@@ -146,36 +196,29 @@ function saveData() {
   })
   .then(res => res.json())
   .then(data => {
+    setSaving(false);
     if(data.status === "success") {
-      alert("Saved successfully!");
-      // Promote New → Old
-      rows.forEach(row => {
-        const newVal = row.querySelector(".new-val").value || 0;
-        row.querySelector(".old-val").textContent = newVal;
-        row.querySelector(".new-val").value = "";
-        row.querySelector(".diff").textContent = "0";
-        row.querySelector(".diff").className = "diff zero";
-      });
+      showBanner("Saved successfully!", "success");
+      loadOldValues(); // reload values from server
     } else {
-      alert("Error saving: " + data.message);
+      showBanner("Error saving: " + data.message, "error");
     }
   })
-  .catch(err => alert("Network error: " + err.message));
+  .catch(err => {
+    setSaving(false);
+    showBanner("Network error: " + err.message, "error");
+  });
 }
 
 /* ================================
    EVENTS
 ================================= */
-document.getElementById("saveBtn").addEventListener("click", saveData);
+saveBtn.addEventListener("click", saveData);
 
 /* ================================
    INIT
 ================================= */
 loadOldValues();
-
 </script>
 </body>
 </html>
-
-
-
