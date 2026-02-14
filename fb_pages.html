@@ -37,34 +37,30 @@
 
   /* Loading overlay */
   #loadingOverlay {
-    position: fixed;
-    top:0; left:0; right:0; bottom:0;
-    background: rgba(0,0,0,0.3);
     display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 1001;
-    font-size: 1.5rem;
-    color: white;
-    font-weight: bold;
-    pointer-events: all;
+    position: fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background: rgba(0,0,0,0.4);
+    z-index:1000;
+    justify-content:center;
+    align-items:center;
+    color:white;
+    font-size:1.5rem;
+    font-weight:bold;
   }
 
-  /* Notification banner */
-  #notification {
-    position: fixed;
-    top:20px; left:50%;
-    transform: translateX(-50%);
-    padding: 1rem 2rem;
-    border-radius: 6px;
-    font-weight: bold;
-    color:white;
+  /* Banners */
+  .banner {
     display:none;
-    z-index:1002;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    padding:0.8rem 1rem;
+    text-align:center;
+    font-weight:bold;
+    border-radius:4px;
+    margin:0.5rem 1rem;
   }
-  #notification.success { background:green; }
-  #notification.error { background:red; }
+  .banner.success { background: #4CAF50; color: white; }
+  .banner.error { background: #F44336; color: white; }
 </style>
 </head>
 
@@ -73,6 +69,9 @@
 <header>
   <img src="logo.svg" alt="Company Logo">
 </header>
+
+<div id="successBanner" class="banner success"></div>
+<div id="errorBanner" class="banner error"></div>
 
 <div class="table-wrapper">
   <table id="fbTable">
@@ -93,13 +92,12 @@
 </div>
 
 <div id="loadingOverlay">Saving...</div>
-<div id="notification"></div>
 
 <script>
-/* ==============================
+/* ================================
    CONFIG
-============================== */
-const WEB_APP_URL = "https://script.google.com/macros/s/YOUR_DEPLOYED_FB_GS_URL/exec";
+================================= */
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwQUK2VOCVSM-tJp3opVMgdkgJZ3zVdXqp6qy0hK-j3Bknhp9pURVnZXrttPKEx1ULr/exec";
 const BRANDS = [
   "team_ridemax","apollo_tyres","cooper","arivo_tires","atlander",
   "michelin","bfgoodrich","patriot","monsta","linglong",
@@ -110,24 +108,28 @@ const BRANDS = [
 
 const tbody = document.querySelector("#fbTable tbody");
 const saveBtn = document.getElementById("saveBtn");
-const loadingOverlay = document.getElementById("loadingOverlay");
-const notification = document.getElementById("notification");
-
+const overlay = document.getElementById("loadingOverlay");
+const successBanner = document.getElementById("successBanner");
+const errorBanner = document.getElementById("errorBanner");
 let OLD_VALUES = {};
 
-/* ==============================
-   HELPER: show notification
-============================== */
-function showNotification(message, type="success") {
-  notification.textContent = message;
-  notification.className = type;
-  notification.style.display = "block";
-  setTimeout(() => { notification.style.display = "none"; }, 3000);
+/* ================================
+   HELPERS
+================================= */
+function showBanner(bannerEl, msg, duration=3000) {
+  bannerEl.textContent = msg;
+  bannerEl.style.display = "block";
+  setTimeout(() => { bannerEl.style.display = "none"; }, duration);
 }
 
-/* ==============================
+function setSaving(isSaving) {
+  saveBtn.disabled = isSaving;
+  overlay.style.display = isSaving ? "flex" : "none";
+}
+
+/* ================================
    LOAD OLD VALUES
-============================== */
+================================= */
 function loadOldValues() {
   fetch(WEB_APP_URL)
     .then(res => res.json())
@@ -137,20 +139,18 @@ function loadOldValues() {
     })
     .catch(() => {
       OLD_VALUES = {};
-      showNotification("Offline mode: old values set to 0", "error");
       buildTable();
+      showBanner(errorBanner, "Offline mode: old values set to 0");
     });
 }
 
-/* ==============================
+/* ================================
    BUILD TABLE
-============================== */
+================================= */
 function buildTable() {
   tbody.innerHTML = "";
-
   BRANDS.forEach(brand => {
     const oldVal = OLD_VALUES[brand] || 0;
-
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td class="brand-logo">
@@ -160,23 +160,20 @@ function buildTable() {
       <td><input type="number" class="new-val" min="0"></td>
       <td class="diff zero">0</td>
     `;
-
     const input = tr.querySelector(".new-val");
     const diffEl = tr.querySelector(".diff");
-
     input.addEventListener("input", () => {
       const diff = Number(input.value || 0) - oldVal;
       diffEl.textContent = diff;
       diffEl.className = "diff " + (diff > 0 ? "positive" : diff < 0 ? "negative" : "zero");
     });
-
     tbody.appendChild(tr);
   });
 }
 
-/* ==============================
-   SAVE TO GOOGLE SHEET
-============================== */
+/* ================================
+   SAVE DATA
+================================= */
 function saveData() {
   const rows = [...tbody.querySelectorAll("tr")];
   const payload = rows.map(row => {
@@ -186,14 +183,7 @@ function saveData() {
     return { brand, new: newVal, diff: newVal - oldVal };
   });
 
-  loadingOverlay.style.display = "flex";
-  saveBtn.disabled = true;
-
-  const saveTimeout = setTimeout(() => {
-    loadingOverlay.style.display = "none";
-    saveBtn.disabled = false;
-    showNotification("Save timed out", "error");
-  }, 10000);
+  setSaving(true);
 
   fetch(WEB_APP_URL, {
     method: "POST",
@@ -202,34 +192,26 @@ function saveData() {
   })
   .then(res => res.json())
   .then(data => {
-    clearTimeout(saveTimeout);
     if(data.status === "success") {
-      showNotification("Saved successfully!", "success");
-      loadOldValues(); // auto-reload old values
+      showBanner(successBanner, "Saved successfully!");
+      loadOldValues(); // Auto reload old values
     } else {
-      showNotification("Error saving: " + data.message, "error");
+      showBanner(errorBanner, "Error saving: " + data.message);
     }
   })
-  .catch(err => {
-    clearTimeout(saveTimeout);
-    showNotification("Network error: " + err.message, "error");
-  })
-  .finally(() => {
-    loadingOverlay.style.display = "none";
-    saveBtn.disabled = false;
-  });
+  .catch(err => showBanner(errorBanner, "Network error: " + err.message))
+  .finally(() => setSaving(false));
 }
 
-/* ==============================
+/* ================================
    EVENTS
-============================== */
+================================= */
 saveBtn.addEventListener("click", saveData);
 
-/* ==============================
+/* ================================
    INIT
-============================== */
+================================= */
 loadOldValues();
-
 </script>
 </body>
 </html>
