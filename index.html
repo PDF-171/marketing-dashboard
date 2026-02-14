@@ -1,14 +1,56 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Dashboard</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Home</title>
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #1d1d1d;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+  }
+
+  .menu {
+    width: 90%;
+    max-width: 400px;
+  }
+
+  h1 {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  a {
+    display: block;
+    background: red;
+    color: white;
+    text-decoration: none;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 1.1rem;
+  }
+</style>
 </head>
+
 <body>
-  <h1>Marketing Dashboard</h1>
-  <ul>
-    <li><a href="fb_pages.html">FB Pages</a></li>
-    <li><a href="ig_pages.html">IG Pages</a></li>
-    <li><a href="projects.html">Projects</a></li>
-  </ul>
+
+<div class="menu">
+  <h1>Dashboard Admin</h1>
+
+  <a href="tasks.html">Edit Tasks</a>
+  <a href="headlines.html">Edit Headlines</a>
+  <a href="fb_pages.html">Edit Facebook Pages</a>
+  <a href="ig_pages.html">Edit Instagram Pages</a>
+</div>
+
 </body>
 </html>
