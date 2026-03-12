@@ -97,7 +97,8 @@
 /* ================================
    CONFIG
 ================================= */
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyAgxkiGGmZBwACi32as4dxkvE86ZuEwMKpWJukcxp-cgQsOVt4_mVfIZRvn7iWehjD/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwYtQssNDoZDMuW47Ioo7mwGPaaRsA7eGDMPiJbaz6wuZXgL2MsXyIpgJsXcZw0Z-wZ/exec";
+
 const BRANDS = [
   "team_ridemax","apollo_tyres","cooper","arivo_tires","atlander",
   "michelin","bfgoodrich","patriot","monsta","linglong",
@@ -107,25 +108,7 @@ const BRANDS = [
 ];
 
 const tbody = document.querySelector("#fbTable tbody");
-const saveBtn = document.getElementById("saveBtn");
-const overlay = document.getElementById("loadingOverlay");
-const successBanner = document.getElementById("successBanner");
-const errorBanner = document.getElementById("errorBanner");
 let OLD_VALUES = {};
-
-/* ================================
-   HELPERS
-================================= */
-function showBanner(bannerEl, msg, duration=3000) {
-  bannerEl.textContent = msg;
-  bannerEl.style.display = "block";
-  setTimeout(() => { bannerEl.style.display = "none"; }, duration);
-}
-
-function setSaving(isSaving) {
-  saveBtn.disabled = isSaving;
-  overlay.style.display = isSaving ? "flex" : "none";
-}
 
 /* ================================
    LOAD OLD VALUES
@@ -138,9 +121,8 @@ function loadOldValues() {
       buildTable();
     })
     .catch(() => {
-      OLD_VALUES = {};
+      alert("Offline mode: old values set to 0");
       buildTable();
-      showBanner(errorBanner, "Offline mode: old values set to 0");
     });
 }
 
@@ -148,10 +130,15 @@ function loadOldValues() {
    BUILD TABLE
 ================================= */
 function buildTable() {
+
   tbody.innerHTML = "";
+
   BRANDS.forEach(brand => {
+
     const oldVal = OLD_VALUES[brand] || 0;
+
     const tr = document.createElement("tr");
+
     tr.innerHTML = `
       <td class="brand-logo">
         <img src="brands/${brand}.svg" alt="${brand}" onerror="this.src='brands/placeholder.svg'">
@@ -160,61 +147,102 @@ function buildTable() {
       <td><input type="number" class="new-val" min="0"></td>
       <td class="diff zero">0</td>
     `;
+
     const input = tr.querySelector(".new-val");
     const diffEl = tr.querySelector(".diff");
+
     input.addEventListener("input", () => {
       const diff = Number(input.value || 0) - oldVal;
+
       diffEl.textContent = diff;
-      diffEl.className = "diff " + (diff > 0 ? "positive" : diff < 0 ? "negative" : "zero");
+
+      diffEl.className = "diff " + (
+        diff > 0 ? "positive" :
+        diff < 0 ? "negative" :
+        "zero"
+      );
     });
+
     tbody.appendChild(tr);
+
   });
+
 }
 
 /* ================================
    SAVE DATA
 ================================= */
 function saveData() {
+
   const rows = [...tbody.querySelectorAll("tr")];
+
   const payload = rows.map(row => {
+
     const brand = row.querySelector("img").alt;
     const oldVal = Number(row.querySelector(".old-val").textContent);
     const newVal = Number(row.querySelector(".new-val").value || 0);
-    return { brand, new: newVal, diff: newVal - oldVal };
-  });
 
-  setSaving(true);
+    return {
+      brand,
+      new: newVal,
+      diff: newVal - oldVal
+    };
+
+  });
 
   fetch(WEB_APP_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   })
+
   .then(res => res.json())
+
   .then(data => {
+
     if(data.status === "success") {
-      showBanner(successBanner, "Saved successfully!");
-      loadOldValues(); // Auto reload old values
+
+      alert("Saved successfully!");
+
+      // Update table immediately
+      rows.forEach(row => {
+
+        const newVal = row.querySelector(".new-val").value || 0;
+
+        row.querySelector(".old-val").textContent = newVal;
+        row.querySelector(".new-val").value = "";
+
+        const diffCell = row.querySelector(".diff");
+        diffCell.textContent = "0";
+        diffCell.className = "diff zero";
+
+      });
+
     } else {
-      showBanner(errorBanner, "Error saving: " + data.message);
+
+      alert("Error saving: " + data.message);
+
     }
+
   })
-  .catch(err => showBanner(errorBanner, "Network error: " + err.message))
-  .finally(() => setSaving(false));
+
+  .catch(err => alert("Network error: " + err.message));
+
 }
 
 /* ================================
    EVENTS
 ================================= */
-saveBtn.addEventListener("click", saveData);
+document.getElementById("saveBtn").addEventListener("click", saveData);
 
 /* ================================
    INIT
 ================================= */
 loadOldValues();
+
 </script>
 </body>
 </html>
+
 
 
 
