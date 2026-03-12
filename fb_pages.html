@@ -195,15 +195,16 @@ function saveData() {
     body: JSON.stringify(payload)
   })
 
-  .then(res => res.json())
+  .then(res => res.text())   // safer than res.json()
+  .then(text => {
 
-  .then(data => {
+    const data = JSON.parse(text);
 
     if(data.status === "success") {
 
       alert("Saved successfully!");
 
-      // Update table immediately
+      // NOW update table
       rows.forEach(row => {
 
         const newVal = row.querySelector(".new-val").value || 0;
@@ -225,7 +226,11 @@ function saveData() {
 
   })
 
-  .catch(err => alert("Network error: " + err.message));
+  .catch(err => {
+
+    alert("Network error: " + err.message);
+
+  });
 
 }
 
@@ -242,6 +247,7 @@ loadOldValues();
 </script>
 </body>
 </html>
+
 
 
 
