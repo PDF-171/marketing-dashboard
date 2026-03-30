@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Headlines Manager</title>
+
+<style>
+body {
+  font-family: Arial;
+  background:#f2f2f2;
+  padding:20px;
+}
+
+#container {
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+/* CARD */
+.card {
+  display:flex;
+  align-items:center;
+  background:white;
+  border-radius:10px;
+  padding:10px;
+  box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* 80% TEXT */
+.card input {
+  width:80%;
+  border:none;
+  outline:none;
+  font-size:1rem;
+}
+
+/* 10% CONTROLS */
+.controls {
+  width:10%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+.controls span {
+  cursor:pointer;
+  user-select:none;
+}
+
+/* 10% DELETE */
+.delete {
+  width:10%;
+  text-align:center;
+  cursor:pointer;
+  color:red;
+  font-weight:bold;
+}
+
+/* BUTTONS */
+button {
+  margin-top:15px;
+  padding:10px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.add { background:#4CAF50; color:white; }
+.save { background:#1877f2; color:white; }
+</style>
+</head>
+
+<body>
+
+<h2>Headlines Manager</h2>
+
+<div id="container"></div>
+
+<button class="add" onclick="addCard()">+ Add</button>
+<button class="save" onclick="saveData()">SAVE</button>
+
+<script>
+const API_URL = "YOUR_WEB_APP_URL";
+const container = document.getElementById("container");
+
+/* =========================
+   LOAD FROM SHEET
+========================= */
+function loadData() {
+  fetch(API_URL)
+    .then(res => res.json())
+    .then(data => {
+      container.innerHTML = "";
+      data.forEach(text => createCard(text));
+    });
+}
+
+/* =========================
+   CREATE CARD
+========================= */
+function createCard(text="") {
+
+  const card = document.createElement("div");
+  card.className = "card";
+
+  card.innerHTML = `
+    <input type="text" value="${text}" placeholder="Type headline...">
+
+    <div class="controls">
+      <span class="up">⬆</span>
+      <span class="down">⬇</span>
+    </div>
+
+    <div class="delete">🗑</div>
+  `;
+
+  /* DELETE */
+  card.querySelector(".delete").onclick = () => {
+    if(confirm("Delete this headline?")) {
+      card.remove();
+    }
+  };
+
+  /* MOVE UP */
+  card.querySelector(".up").onclick = () => {
+    const prev = card.previousElementSibling;
+    if(prev) container.insertBefore(card, prev);
+  };
+
+  /* MOVE DOWN */
+  card.querySelector(".down").onclick = () => {
+    const next = card.nextElementSibling;
+    if(next) container.insertBefore(next, card);
+  };
+
+  container.appendChild(card);
+}
+
+/* =========================
+   ADD NEW
+========================= */
+function addCard() {
+  createCard("");
+}
+
+/* =========================
+   SAVE (OVERWRITE SHEET)
+========================= */
+function saveData() {
+
+  const values = [...document.querySelectorAll(".card input")]
+    .map(input => input.value.trim())
+    .filter(v => v !== "");
+
+  fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify(values)
+  })
+  .then(res => res.json())
+  .then(data => {
+    if(data.status === "success") {
+      alert("Saved!");
+      loadData(); // reload clean order
+    } else {
+      alert("Error: " + data.message);
+    }
+  })
+  .catch(err => alert("Network error: " + err.message));
+}
+
+/* INIT */
+loadData();
+</script>
+
+</body>
+</html>
