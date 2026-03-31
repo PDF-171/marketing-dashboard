@@ -46,25 +46,33 @@ body {
 /* ===== CARD ===== */
 .card {
   display: flex;
-  height: 14vh; /* ~1/7 screen */
+  height: 14vh;
   margin-bottom: 10px;
   border-radius: 10px;
   overflow: hidden;
   background: white;
 }
 
-/* LEFT 50% */
+/* LEFT */
 .left {
   width: 50%;
   display: flex;
   align-items: center;
   padding: 15px;
-  font-weight: bold;
   color: white;
-  font-size: 18px;
 }
 
-/* MIDDLE 25% */
+.title {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.sub {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* MIDDLE */
 .middle {
   width: 25%;
   display: flex;
@@ -78,7 +86,7 @@ body {
   border-bottom: 1px solid #ddd;
 }
 
-/* RIGHT 25% */
+/* RIGHT */
 .right {
   width: 25%;
   display: flex;
@@ -86,14 +94,33 @@ body {
 }
 
 .right input {
-  height: 50%;
   border: none;
-  padding: 8px;
+  padding: 6px;
   border-bottom: 1px solid #ddd;
 }
 
+/* dates */
+.dates {
+  display: flex;
+  flex: 1;
+}
+
+.dates input {
+  width: 50%;
+}
+
+/* bottom */
+.bottom {
+  display: flex;
+  flex: 1;
+}
+
+.bottom input {
+  width: 70%;
+}
+
 .delete {
-  height: 50%;
+  width: 30%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -102,7 +129,7 @@ body {
   font-weight: bold;
 }
 
-/* ===== SCROLL TOP ===== */
+/* SCROLL TOP */
 .scrollTop {
   position: fixed;
   bottom: 20px;
@@ -140,7 +167,7 @@ body {
 <div class="scrollTop" onclick="window.scrollTo({top:0, behavior:'smooth'})">⬆</div>
 
 <script>
-const API_URL = "YOUR_WEB_APP_URL";
+const API_URL = "https://script.google.com/macros/s/AKfycbxxaAX2ct3FWRAEuuo26IjzU8xnGxg722zgKc8qSAusRxVlahr2iqnPIew3Vmb_CNFZ/exec";
 const container = document.getElementById("container");
 
 let projects = [];
@@ -151,10 +178,15 @@ function loadData() {
     .then(res => res.json())
     .then(data => {
       projects = data.map(row => ({
-        name: row[1],
-        brand: row[2],
-        head: row[3],
-        progress: row[4] || 0
+        project: row[1] || "",
+        sub_department: row[2] || "",
+        project_head: row[3] || "",
+        brand: row[4] || "",
+        date_started: row[5] || "",
+        deadline: row[6] || "",
+        remarks: row[7] || "",
+        accomplishment_percentage: Number(row[8]) || 0,
+        status: row[9] || ""
       }));
 
       initFilters();
@@ -164,8 +196,8 @@ function loadData() {
 
 /* FILTER INIT */
 function initFilters() {
-  const brands = [...new Set(projects.map(p => p.brand))];
-  const heads = [...new Set(projects.map(p => p.head))];
+  const brands = [...new Set(projects.map(p => p.brand).filter(Boolean))];
+  const heads = [...new Set(projects.map(p => p.project_head).filter(Boolean))];
 
   brandFilter.innerHTML = '<option value="">All Brands</option>';
   headFilter.innerHTML = '<option value="">All Project Heads</option>';
@@ -174,10 +206,17 @@ function initFilters() {
   heads.forEach(h => headFilter.innerHTML += `<option>${h}</option>`);
 }
 
-/* GRADIENT */
-function gradient(p) {
-  if (p < 50) return "linear-gradient(90deg,#e74c3c,#f1c40f)";
-  if (p < 100) return "linear-gradient(90deg,#f1c40f,#2ecc71)";
+/* COLOR LOGIC */
+function getColor(p) {
+  const status = (p.status || "").toLowerCase();
+
+  if (status === "delayed") return "#e74c3c";
+  if (status === "done") return "#2ecc71";
+
+  const prog = p.accomplishment_percentage;
+
+  if (prog < 50) return "linear-gradient(90deg,#e74c3c,#f1c40f)";
+  if (prog < 100) return "linear-gradient(90deg,#f1c40f,#2ecc71)";
   return "#2ecc71";
 }
 
@@ -187,8 +226,8 @@ function render() {
 
   const filtered = projects.filter(p =>
     (!brandFilter.value || p.brand === brandFilter.value) &&
-    (!headFilter.value || p.head === headFilter.value) &&
-    p.name.toLowerCase().includes(search.value.toLowerCase())
+    (!headFilter.value || p.project_head === headFilter.value) &&
+    (p.project || "").toLowerCase().includes(search.value.toLowerCase())
   );
 
   filtered.forEach((p, i) => {
@@ -196,19 +235,44 @@ function render() {
     card.className = "card";
 
     card.innerHTML = `
-      <div class="left" style="background:${gradient(p.progress)}">
-        ${p.name}
+      <div class="left" style="background:${getColor(p)}">
+        <div>
+          <div class="title">${p.project}</div>
+          <div class="sub">${p.sub_department}</div>
+        </div>
       </div>
 
       <div class="middle">
-        <input value="${p.brand}" onchange="projects[${i}].brand=this.value">
-        <input value="${p.head}" onchange="projects[${i}].head=this.value">
+        <input value="${p.brand}" 
+          onchange="projects[${i}].brand=this.value">
+        <input value="${p.project_head}" 
+          onchange="projects[${i}].project_head=this.value">
       </div>
 
       <div class="right">
-        <input type="number" value="${p.progress}" 
-          onchange="projects[${i}].progress=this.value">
-        <div class="delete" onclick="deleteProject(${i})">🗑</div>
+
+        <input type="number" min="0" max="100"
+          value="${p.accomplishment_percentage}"
+          onchange="projects[${i}].accomplishment_percentage=Math.max(0, Math.min(100, this.value))">
+
+        <div class="dates">
+          <input type="date"
+            value="${p.date_started}"
+            onchange="projects[${i}].date_started=this.value">
+
+          <input type="date"
+            value="${p.deadline}"
+            onchange="projects[${i}].deadline=this.value">
+        </div>
+
+        <div class="bottom">
+          <input value="${p.status}"
+            onchange="projects[${i}].status=this.value"
+            placeholder="Status">
+
+          <div class="delete" onclick="deleteProject(${i})">🗑</div>
+        </div>
+
       </div>
     `;
 
@@ -218,8 +282,8 @@ function render() {
 
 /* DELETE */
 function deleteProject(i) {
-  if(confirm("Delete project?")) {
-    projects.splice(i,1);
+  if (confirm("Delete project?")) {
+    projects.splice(i, 1);
     render();
   }
 }
@@ -228,14 +292,19 @@ function deleteProject(i) {
 function saveData() {
   fetch(API_URL, {
     method: "POST",
-    headers: {"Content-Type":"application/json"},
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(projects)
   })
   .then(res => res.json())
   .then(res => {
-    alert("Saved!");
-    loadData();
-  });
+    if(res.status === "success"){
+      alert("Saved!");
+      loadData();
+    } else {
+      alert("Error: " + res.message);
+    }
+  })
+  .catch(() => alert("Network error"));
 }
 
 /* EVENTS */
