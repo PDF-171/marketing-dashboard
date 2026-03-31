@@ -28,16 +28,6 @@ body {
   padding: 6px;
 }
 
-.save-btn {
-  margin-left: auto;
-  background: #1877f2;
-  color: white;
-  border: none;
-  padding: 8px 14px;
-  cursor: pointer;
-}
-
-/* CONTAINER */
 .container {
   padding: 10px;
 }
@@ -61,9 +51,13 @@ body {
   color: white;
 }
 
-.title {
+.titleInput {
   font-size: 16px;
   font-weight: bold;
+  border: none;
+  background: transparent;
+  color: white;
+  width: 100%;
 }
 
 .sub {
@@ -101,7 +95,6 @@ body {
 /* dates */
 .dates {
   display: flex;
-  flex: 1;
 }
 
 .dates input {
@@ -111,7 +104,6 @@ body {
 /* bottom */
 .bottom {
   display: flex;
-  flex: 1;
 }
 
 .bottom input {
@@ -139,7 +131,7 @@ body {
   margin-top: 10px;
 }
 
-/* SCROLL */
+/* FLOATING BUTTONS */
 .scrollTop {
   position: fixed;
   bottom: 20px;
@@ -150,11 +142,25 @@ body {
   border-radius: 50%;
   cursor: pointer;
 }
+
+.saveFloating {
+  position: fixed;
+  bottom: 70px;
+  right: 20px;
+  background: #1877f2;
+  color: white;
+  padding: 10px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
 </style>
 </head>
 
 <body>
 
+<!-- HEADER -->
 <div class="header">
   <input type="text" id="search" placeholder="Search project...">
 
@@ -165,13 +171,14 @@ body {
   <select id="headFilter">
     <option value="">All Project Heads</option>
   </select>
-
-  <button class="save-btn" onclick="saveData()">SAVE</button>
 </div>
 
+<!-- CONTENT -->
 <div class="container" id="container"></div>
 
+<!-- FLOATING BUTTONS -->
 <div class="scrollTop" onclick="window.scrollTo({top:0, behavior:'smooth'})">⬆</div>
+<div class="saveFloating" onclick="saveData()">SAVE</div>
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxxaAX2ct3FWRAEuuo26IjzU8xnGxg722zgKc8qSAusRxVlahr2iqnPIew3Vmb_CNFZ/exec";
@@ -196,7 +203,7 @@ function loadData() {
         accomplishment_percentage: Number(row[8]) || 0,
         status: row[9] || ""
       }))
-      .filter(p => p.project.trim() !== ""); // ❗ HIDE EMPTY ROWS
+      .filter(p => p.project.trim() !== ""); // hide empty rows
 
       initFilters();
       render();
@@ -220,9 +227,8 @@ function getColor(p) {
   if ((p.status || "").toLowerCase() === "done") return "#2ecc71";
   if ((p.status || "").toLowerCase() === "delayed") return "#e74c3c";
 
-  const prog = p.accomplishment_percentage;
-  if (prog < 50) return "linear-gradient(90deg,#e74c3c,#f1c40f)";
-  if (prog < 100) return "linear-gradient(90deg,#f1c40f,#2ecc71)";
+  if (p.accomplishment_percentage < 50) return "linear-gradient(90deg,#e74c3c,#f1c40f)";
+  if (p.accomplishment_percentage < 100) return "linear-gradient(90deg,#f1c40f,#2ecc71)";
   return "#2ecc71";
 }
 
@@ -242,21 +248,21 @@ function render() {
 
     card.innerHTML = `
       <div class="left" style="background:${getColor(p)}">
-        <div>
-          <!-- ✅ PROJECT NAME NOW EDITABLE -->
-          <input value="${p.project}" 
-            style="font-size:16px;font-weight:bold;border:none;background:transparent;color:white;width:100%"
+        <div style="width:100%">
+          <!-- EDITABLE PROJECT NAME -->
+          <input class="titleInput"
+            value="${p.project}"
             onchange="projects[${i}].project=this.value">
 
-          <div class="sub">${p.sub_department}</div>
+          <div class="sub">${p.sub_department || ""}</div>
         </div>
       </div>
 
       <div class="middle">
-        <input value="${p.brand}" 
+        <input value="${p.brand}"
           onchange="projects[${i}].brand=this.value">
 
-        <input value="${p.project_head}" 
+        <input value="${p.project_head}"
           onchange="projects[${i}].project_head=this.value">
       </div>
 
@@ -287,16 +293,15 @@ function render() {
     container.appendChild(card);
   });
 
-  /* ADD BUTTON */
+  // ADD NEW PROJECT BUTTON
   const add = document.createElement("div");
   add.className = "add-btn";
   add.innerText = "+ Add New Project";
   add.onclick = addProject;
-
   container.appendChild(add);
 }
 
-/* ADD NEW PROJECT */
+/* ADD */
 function addProject() {
   projects.push({
     project: "",
@@ -321,22 +326,38 @@ function deleteProject(i) {
   }
 }
 
-/* SAVE */
+/* SAFE SAVE */
 function saveData() {
+  const cleanData = projects
+    .filter(p => p.project && p.project.trim() !== "")
+    .map((p, i) => ([
+      i + 1,
+      p.project,
+      p.sub_department,
+      p.project_head,
+      p.brand,
+      p.date_started,
+      p.deadline,
+      p.remarks,
+      Number(p.accomplishment_percentage),
+      p.status
+    ]));
+
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(projects)
+    body: JSON.stringify(cleanData)
   })
   .then(res => res.json())
   .then(res => {
     if (res.status === "success") {
-      alert("Saved!");
+      alert("Saved successfully!");
       loadData();
     } else {
-      alert("Error: " + res.message);
+      alert("Save error: " + res.message);
     }
-  });
+  })
+  .catch(err => alert("Network error: " + err.message));
 }
 
 /* EVENTS */
