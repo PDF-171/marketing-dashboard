@@ -11,7 +11,7 @@ body {
   background: #f2f2f2;
 }
 
-/* ===== HEADER ===== */
+/* HEADER */
 .header {
   position: sticky;
   top: 0;
@@ -24,8 +24,7 @@ body {
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 
-.header input,
-.header select {
+.header input, .header select {
   padding: 6px;
 }
 
@@ -38,12 +37,12 @@ body {
   cursor: pointer;
 }
 
-/* ===== CONTAINER ===== */
+/* CONTAINER */
 .container {
   padding: 10px;
 }
 
-/* ===== CARD ===== */
+/* CARD */
 .card {
   display: flex;
   height: 14vh;
@@ -129,7 +128,18 @@ body {
   font-weight: bold;
 }
 
-/* SCROLL TOP */
+/* ADD BUTTON */
+.add-btn {
+  background: white;
+  border: 2px dashed #999;
+  padding: 15px;
+  text-align: center;
+  cursor: pointer;
+  border-radius: 10px;
+  margin-top: 10px;
+}
+
+/* SCROLL */
 .scrollTop {
   position: fixed;
   bottom: 20px;
@@ -145,10 +155,9 @@ body {
 
 <body>
 
-<!-- HEADER -->
 <div class="header">
   <input type="text" id="search" placeholder="Search project...">
-  
+
   <select id="brandFilter">
     <option value="">All Brands</option>
   </select>
@@ -160,23 +169,22 @@ body {
   <button class="save-btn" onclick="saveData()">SAVE</button>
 </div>
 
-<!-- CARDS -->
 <div class="container" id="container"></div>
 
-<!-- SCROLL TOP -->
 <div class="scrollTop" onclick="window.scrollTo({top:0, behavior:'smooth'})">⬆</div>
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxxaAX2ct3FWRAEuuo26IjzU8xnGxg722zgKc8qSAusRxVlahr2iqnPIew3Vmb_CNFZ/exec";
-const container = document.getElementById("container");
-
 let projects = [];
+
+const container = document.getElementById("container");
 
 /* LOAD */
 function loadData() {
   fetch(API_URL)
     .then(res => res.json())
     .then(data => {
+
       projects = data.map(row => ({
         project: row[1] || "",
         sub_department: row[2] || "",
@@ -187,14 +195,15 @@ function loadData() {
         remarks: row[7] || "",
         accomplishment_percentage: Number(row[8]) || 0,
         status: row[9] || ""
-      }));
+      }))
+      .filter(p => p.project.trim() !== ""); // ❗ HIDE EMPTY ROWS
 
       initFilters();
       render();
     });
 }
 
-/* FILTER INIT */
+/* FILTERS */
 function initFilters() {
   const brands = [...new Set(projects.map(p => p.brand).filter(Boolean))];
   const heads = [...new Set(projects.map(p => p.project_head).filter(Boolean))];
@@ -206,15 +215,12 @@ function initFilters() {
   heads.forEach(h => headFilter.innerHTML += `<option>${h}</option>`);
 }
 
-/* COLOR LOGIC */
+/* COLOR */
 function getColor(p) {
-  const status = (p.status || "").toLowerCase();
-
-  if (status === "delayed") return "#e74c3c";
-  if (status === "done") return "#2ecc71";
+  if ((p.status || "").toLowerCase() === "done") return "#2ecc71";
+  if ((p.status || "").toLowerCase() === "delayed") return "#e74c3c";
 
   const prog = p.accomplishment_percentage;
-
   if (prog < 50) return "linear-gradient(90deg,#e74c3c,#f1c40f)";
   if (prog < 100) return "linear-gradient(90deg,#f1c40f,#2ecc71)";
   return "#2ecc71";
@@ -237,7 +243,11 @@ function render() {
     card.innerHTML = `
       <div class="left" style="background:${getColor(p)}">
         <div>
-          <div class="title">${p.project}</div>
+          <!-- ✅ PROJECT NAME NOW EDITABLE -->
+          <input value="${p.project}" 
+            style="font-size:16px;font-weight:bold;border:none;background:transparent;color:white;width:100%"
+            onchange="projects[${i}].project=this.value">
+
           <div class="sub">${p.sub_department}</div>
         </div>
       </div>
@@ -245,15 +255,15 @@ function render() {
       <div class="middle">
         <input value="${p.brand}" 
           onchange="projects[${i}].brand=this.value">
+
         <input value="${p.project_head}" 
           onchange="projects[${i}].project_head=this.value">
       </div>
 
       <div class="right">
-
         <input type="number" min="0" max="100"
           value="${p.accomplishment_percentage}"
-          onchange="projects[${i}].accomplishment_percentage=Math.max(0, Math.min(100, this.value))">
+          onchange="projects[${i}].accomplishment_percentage=this.value">
 
         <div class="dates">
           <input type="date"
@@ -267,17 +277,40 @@ function render() {
 
         <div class="bottom">
           <input value="${p.status}"
-            onchange="projects[${i}].status=this.value"
-            placeholder="Status">
+            onchange="projects[${i}].status=this.value">
 
           <div class="delete" onclick="deleteProject(${i})">🗑</div>
         </div>
-
       </div>
     `;
 
     container.appendChild(card);
   });
+
+  /* ADD BUTTON */
+  const add = document.createElement("div");
+  add.className = "add-btn";
+  add.innerText = "+ Add New Project";
+  add.onclick = addProject;
+
+  container.appendChild(add);
+}
+
+/* ADD NEW PROJECT */
+function addProject() {
+  projects.push({
+    project: "",
+    sub_department: "",
+    project_head: "",
+    brand: "",
+    date_started: "",
+    deadline: "",
+    remarks: "",
+    accomplishment_percentage: 0,
+    status: ""
+  });
+
+  render();
 }
 
 /* DELETE */
@@ -297,14 +330,13 @@ function saveData() {
   })
   .then(res => res.json())
   .then(res => {
-    if(res.status === "success"){
+    if (res.status === "success") {
       alert("Saved!");
       loadData();
     } else {
       alert("Error: " + res.message);
     }
-  })
-  .catch(() => alert("Network error"));
+  });
 }
 
 /* EVENTS */
