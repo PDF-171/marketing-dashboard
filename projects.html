@@ -2,131 +2,246 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Projects Manager</title>
+<title>Projects Dashboard</title>
 
 <style>
 body {
+  margin: 0;
   font-family: Arial;
-  background:#f2f2f2;
-  padding:20px;
+  background: #f2f2f2;
 }
 
-#container {
-  display:flex;
-  flex-direction:column;
-  gap:10px;
+/* ===== HEADER ===== */
+.header {
+  position: sticky;
+  top: 0;
+  background: white;
+  padding: 10px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 
+.header input,
+.header select {
+  padding: 6px;
+}
+
+.save-btn {
+  margin-left: auto;
+  background: #1877f2;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+/* ===== CONTAINER ===== */
+.container {
+  padding: 10px;
+}
+
+/* ===== CARD ===== */
 .card {
-  display:grid;
-  grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr auto;
-  gap:8px;
-  background:white;
-  padding:10px;
-  border-radius:10px;
+  display: flex;
+  height: 14vh; /* ~1/7 screen */
+  margin-bottom: 10px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: white;
 }
 
-input {
-  padding:5px;
+/* LEFT 50% */
+.left {
+  width: 50%;
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  font-weight: bold;
+  color: white;
+  font-size: 18px;
+}
+
+/* MIDDLE 25% */
+.middle {
+  width: 25%;
+  display: flex;
+  flex-direction: column;
+}
+
+.middle input {
+  height: 50%;
+  border: none;
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
+}
+
+/* RIGHT 25% */
+.right {
+  width: 25%;
+  display: flex;
+  flex-direction: column;
+}
+
+.right input {
+  height: 50%;
+  border: none;
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
 }
 
 .delete {
-  cursor:pointer;
-  color:red;
-  font-weight:bold;
+  height: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: red;
+  cursor: pointer;
+  font-weight: bold;
 }
 
-button {
-  margin-top:15px;
-  padding:10px;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
+/* ===== SCROLL TOP ===== */
+.scrollTop {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: black;
+  color: white;
+  padding: 10px;
+  border-radius: 50%;
+  cursor: pointer;
 }
-
-.add { background:#4CAF50; color:white; }
-.save { background:#1877f2; color:white; }
 </style>
 </head>
 
 <body>
 
-<h2>Projects Manager</h2>
+<!-- HEADER -->
+<div class="header">
+  <input type="text" id="search" placeholder="Search project...">
+  
+  <select id="brandFilter">
+    <option value="">All Brands</option>
+  </select>
 
-<div id="container"></div>
+  <select id="headFilter">
+    <option value="">All Project Heads</option>
+  </select>
 
-<button class="add" onclick="addCard()">+ Add Project</button>
-<button class="save" onclick="saveData()">SAVE</button>
+  <button class="save-btn" onclick="saveData()">SAVE</button>
+</div>
+
+<!-- CARDS -->
+<div class="container" id="container"></div>
+
+<!-- SCROLL TOP -->
+<div class="scrollTop" onclick="window.scrollTo({top:0, behavior:'smooth'})">⬆</div>
 
 <script>
 const API_URL = "YOUR_WEB_APP_URL";
 const container = document.getElementById("container");
+
+let projects = [];
 
 /* LOAD */
 function loadData() {
   fetch(API_URL)
     .then(res => res.json())
     .then(data => {
-      container.innerHTML = "";
-      data.forEach(row => createCard(row));
+      projects = data.map(row => ({
+        name: row[1],
+        brand: row[2],
+        head: row[3],
+        progress: row[4] || 0
+      }));
+
+      initFilters();
+      render();
     });
 }
 
-/* CREATE CARD */
-function createCard(data = []) {
-  const card = document.createElement("div");
-  card.className = "card";
+/* FILTER INIT */
+function initFilters() {
+  const brands = [...new Set(projects.map(p => p.brand))];
+  const heads = [...new Set(projects.map(p => p.head))];
 
-  card.innerHTML = `
-    <input placeholder="Project Name" value="${data[1] || ""}">
-    <input placeholder="Brand" value="${data[2] || ""}">
-    <input placeholder="Project Head" value="${data[3] || ""}">
-    <input type="date" value="${data[4] || ""}">
-    <input type="date" value="${data[5] || ""}">
-    <div class="delete">🗑</div>
-  `;
+  brandFilter.innerHTML = '<option value="">All Brands</option>';
+  headFilter.innerHTML = '<option value="">All Project Heads</option>';
 
-  card.querySelector(".delete").onclick = () => {
-    if(confirm("Delete project?")) card.remove();
-  };
-
-  container.appendChild(card);
+  brands.forEach(b => brandFilter.innerHTML += `<option>${b}</option>`);
+  heads.forEach(h => headFilter.innerHTML += `<option>${h}</option>`);
 }
 
-/* ADD */
-function addCard() {
-  createCard();
+/* GRADIENT */
+function gradient(p) {
+  if (p < 50) return "linear-gradient(90deg,#e74c3c,#f1c40f)";
+  if (p < 100) return "linear-gradient(90deg,#f1c40f,#2ecc71)";
+  return "#2ecc71";
+}
+
+/* RENDER */
+function render() {
+  container.innerHTML = "";
+
+  const filtered = projects.filter(p =>
+    (!brandFilter.value || p.brand === brandFilter.value) &&
+    (!headFilter.value || p.head === headFilter.value) &&
+    p.name.toLowerCase().includes(search.value.toLowerCase())
+  );
+
+  filtered.forEach((p, i) => {
+    const card = document.createElement("div");
+    card.className = "card";
+
+    card.innerHTML = `
+      <div class="left" style="background:${gradient(p.progress)}">
+        ${p.name}
+      </div>
+
+      <div class="middle">
+        <input value="${p.brand}" onchange="projects[${i}].brand=this.value">
+        <input value="${p.head}" onchange="projects[${i}].head=this.value">
+      </div>
+
+      <div class="right">
+        <input type="number" value="${p.progress}" 
+          onchange="projects[${i}].progress=this.value">
+        <div class="delete" onclick="deleteProject(${i})">🗑</div>
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
+}
+
+/* DELETE */
+function deleteProject(i) {
+  if(confirm("Delete project?")) {
+    projects.splice(i,1);
+    render();
+  }
 }
 
 /* SAVE */
 function saveData() {
-  const rows = [...document.querySelectorAll(".card")].map(card => {
-    const inputs = card.querySelectorAll("input");
-
-    return {
-      name: inputs[0].value,
-      brand: inputs[1].value,
-      head: inputs[2].value,
-      start: inputs[3].value,
-      deadline: inputs[4].value
-    };
-  });
-
   fetch(API_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(rows)
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(projects)
   })
   .then(res => res.json())
-  .then(data => {
-    if(data.status === "success") {
-      alert("Saved!");
-      loadData();
-    } else {
-      alert("Error: " + data.message);
-    }
+  .then(res => {
+    alert("Saved!");
+    loadData();
   });
 }
+
+/* EVENTS */
+search.oninput = render;
+brandFilter.onchange = render;
+headFilter.onchange = render;
 
 /* INIT */
 loadData();
