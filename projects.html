@@ -1,221 +1,135 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Projects Dashboard</title>
+<meta charset="UTF-8">
+<title>Projects Manager</title>
 
 <style>
 body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #f4f4f4;
+  font-family: Arial;
+  background:#f2f2f2;
+  padding:20px;
 }
 
-/* ===== TOP BAR ===== */
-.topbar {
-  background: #fff;
-  padding: 1rem;
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+#container {
+  display:flex;
+  flex-direction:column;
+  gap:10px;
 }
 
-.topbar input,
-.topbar select {
-  padding: 0.5rem;
-  font-size: 14px;
-}
-
-/* ===== CONTAINER ===== */
-.container {
-  padding: 1rem;
-  max-width: 1200px;
-  margin: auto;
-}
-
-/* ===== PROJECT CARD ===== */
 .card {
-  display: flex;
-  background: #fff;
-  border-radius: 10px;
-  overflow: hidden;
-  margin-bottom: 1rem;
-  cursor: pointer;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  display:grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr auto;
+  gap:8px;
+  background:white;
+  padding:10px;
+  border-radius:10px;
 }
 
-/* LEFT – PROGRESS */
-.progress-area {
-  width: 70%;
-  position: relative;
-  background: #ddd;
+input {
+  padding:5px;
 }
 
-.progress-fill {
-  height: 100%;
-  transition: width 0.3s ease;
+.delete {
+  cursor:pointer;
+  color:red;
+  font-weight:bold;
 }
 
-/* RIGHT – META */
-.meta {
-  width: 30%;
-  display: grid;
-  grid-template-rows: repeat(4, 1fr);
-  border-left: 1px solid #ddd;
+button {
+  margin-top:15px;
+  padding:10px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
 }
 
-.meta div {
-  padding: 0.6rem;
-  font-size: 13px;
-  border-bottom: 1px solid #eee;
-}
-
-.meta div:last-child {
-  border-bottom: none;
-}
-
-.meta strong {
-  display: block;
-  font-size: 12px;
-  color: #666;
-}
-
-/* ===== EDIT MODE ===== */
-.editor {
-  display: none;
-  padding: 0.8rem;
-  background: #fafafa;
-  border-top: 1px solid #ddd;
-}
-
-.editor input {
-  width: 80px;
-  padding: 0.3rem;
-}
-
-.card.editing .editor {
-  display: block;
-}
+.add { background:#4CAF50; color:white; }
+.save { background:#1877f2; color:white; }
 </style>
 </head>
 
 <body>
 
-<!-- ===== TOP BAR ===== -->
-<div class="topbar">
-  <input type="text" id="search" placeholder="Search project..." />
-  <select id="brandFilter">
-    <option value="">All Brands</option>
-  </select>
-</div>
+<h2>Projects Manager</h2>
 
-<div class="container" id="cards"></div>
+<div id="container"></div>
+
+<button class="add" onclick="addCard()">+ Add Project</button>
+<button class="save" onclick="saveData()">SAVE</button>
 
 <script>
-/* =========================
-   MOCK DATA (replace later)
-========================= */
-let projects = [
-  { name: "Dealer Wall A", brand: "BFGoodrich", dept: "Marketing", start: "2026-01-10", progress: 72 },
-  { name: "Showroom Build", brand: "Michelin", dept: "Sales", start: "2026-01-05", progress: 45 },
-  { name: "Outdoor Signage", brand: "BFGoodrich", dept: "Trade", start: "2025-12-20", progress: 88 },
-  { name: "Event Booth", brand: "Cooper", dept: "Events", start: "2026-01-15", progress: 20 }
-];
+const API_URL = "YOUR_WEB_APP_URL";
+const container = document.getElementById("container");
 
-const container = document.getElementById("cards");
-const brandFilter = document.getElementById("brandFilter");
-const searchInput = document.getElementById("search");
-
-/* =========================
-   INIT FILTERS
-========================= */
-[...new Set(projects.map(p => p.brand))].forEach(b => {
-  const opt = document.createElement("option");
-  opt.value = b;
-  opt.textContent = b;
-  brandFilter.appendChild(opt);
-});
-
-/* =========================
-   COLOR LOGIC
-========================= */
-function progressColor(p) {
-  if (p <= 30) return "#e74c3c";
-  if (p <= 70) return "#f1c40f";
-  if (p < 100) {
-    const ratio = (p - 71) / 28;
-    return `linear-gradient(90deg, #f1c40f, #2ecc71 ${ratio * 100}%)`;
-  }
-  return "#2ecc71";
+/* LOAD */
+function loadData() {
+  fetch(API_URL)
+    .then(res => res.json())
+    .then(data => {
+      container.innerHTML = "";
+      data.forEach(row => createCard(row));
+    });
 }
 
-/* =========================
-   RENDER
-========================= */
-function render() {
-  container.innerHTML = "";
+/* CREATE CARD */
+function createCard(data = []) {
+  const card = document.createElement("div");
+  card.className = "card";
 
-  const filtered = projects.filter(p => {
-    return (
-      (!brandFilter.value || p.brand === brandFilter.value) &&
-      p.name.toLowerCase().includes(searchInput.value.toLowerCase())
-    );
+  card.innerHTML = `
+    <input placeholder="Project Name" value="${data[1] || ""}">
+    <input placeholder="Brand" value="${data[2] || ""}">
+    <input placeholder="Project Head" value="${data[3] || ""}">
+    <input type="date" value="${data[4] || ""}">
+    <input type="date" value="${data[5] || ""}">
+    <div class="delete">🗑</div>
+  `;
+
+  card.querySelector(".delete").onclick = () => {
+    if(confirm("Delete project?")) card.remove();
+  };
+
+  container.appendChild(card);
+}
+
+/* ADD */
+function addCard() {
+  createCard();
+}
+
+/* SAVE */
+function saveData() {
+  const rows = [...document.querySelectorAll(".card")].map(card => {
+    const inputs = card.querySelectorAll("input");
+
+    return {
+      name: inputs[0].value,
+      brand: inputs[1].value,
+      head: inputs[2].value,
+      start: inputs[3].value,
+      deadline: inputs[4].value
+    };
   });
 
-  filtered.forEach((p, index) => {
-    const card = document.createElement("div");
-    card.className = "card";
-
-    card.innerHTML = `
-      <div class="progress-area">
-        <div class="progress-fill" style="
-          width:${p.progress}%;
-          background:${progressColor(p.progress)};
-        "></div>
-      </div>
-
-      <div class="meta">
-        <div><strong>Progress</strong>${p.progress}%</div>
-        <div><strong>Started</strong>${p.start}</div>
-        <div><strong>Brand</strong>${p.brand}</div>
-        <div><strong>Dept</strong>${p.dept}</div>
-      </div>
-    `;
-
-    const editor = document.createElement("div");
-    editor.className = "editor";
-    editor.innerHTML = `
-      Update Progress:
-      <input type="number" min="0" max="100" value="${p.progress}" />
-      <button>Save</button>
-    `;
-
-    card.appendChild(editor);
-
-    card.addEventListener("click", () => {
-      card.classList.toggle("editing");
-    });
-
-    editor.querySelector("button").addEventListener("click", e => {
-      e.stopPropagation();
-      const val = Number(editor.querySelector("input").value);
-      projects[index].progress = val;
-      render();
-    });
-
-    container.appendChild(card);
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(rows)
+  })
+  .then(res => res.json())
+  .then(data => {
+    if(data.status === "success") {
+      alert("Saved!");
+      loadData();
+    } else {
+      alert("Error: " + data.message);
+    }
   });
 }
 
-/* =========================
-   EVENTS
-========================= */
-searchInput.addEventListener("input", render);
-brandFilter.addEventListener("change", render);
-
-render();
+/* INIT */
+loadData();
 </script>
 
 </body>
