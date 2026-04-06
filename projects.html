@@ -156,7 +156,7 @@ body {
 <div class="container" id="container"></div>
 
 <div class="scrollTop" onclick="window.scrollTo({top:0, behavior:'smooth'})">⬆</div>
-<div class="saveFloating" onclick="saveData()">SAVE</div>
+<div class="saveFloating" id="saveBtn">SAVE</div>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
@@ -336,6 +336,10 @@ function saveData() {
 search.oninput = render;
 brandFilter.onchange = render;
 headFilter.onchange = render;
+
+/* SAVE BUTTON */
+const saveBtn = document.getElementById("saveBtn");
+saveBtn.onclick = saveData;
 
 /* INIT */
 loadData();
