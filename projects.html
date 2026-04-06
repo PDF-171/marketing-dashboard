@@ -10,29 +10,23 @@ const search = document.getElementById("search");
 const brandFilter = document.getElementById("brandFilter");
 const headFilter = document.getElementById("headFilter");
 
-/* FORMAT DATE */
-function formatDate(d) {
-  if (!d) return "";
-  return new Date(d).toISOString().split("T")[0];
-}
-
 /* LOAD */
 function loadData() {
   fetch(API_URL)
     .then(res => res.json())
     .then(data => {
-
       projects = data.map(row => ({
         project: row[1] || "",
         sub_department: row[2] || "",
         project_head: row[3] || "",
         brand: row[4] || "",
-        date_started: formatDate(row[5]),
-        deadline: formatDate(row[6]),
+        date_started: row[5] || "",
+        deadline: row[6] || "",
         remarks: row[7] || "",
         accomplishment_percentage: Number(row[8]) || 0,
-        status: row[9] || "PENDING"
-      })).filter(p => p.project.trim() !== "");
+        status: row[9] || ""
+      }))
+      .filter(p => p.project.trim() !== "");
 
       initFilters();
       render();
@@ -53,14 +47,12 @@ function initFilters() {
 
 /* COLOR */
 function getColor(p) {
-  switch((p.status || "").toUpperCase()) {
-    case "COMPLETE": return "#2ecc71";
-    case "CANCELLED": return "#7f8c8d";
-    case "PENDING": return "#f1c40f";
-    default:
-      if (p.accomplishment_percentage < 50) return "#e74c3c";
-      return "#3498db";
-  }
+  if ((p.status || "").toLowerCase() === "done") return "#2ecc71";
+  if ((p.status || "").toLowerCase() === "delayed") return "#e74c3c";
+
+  if (p.accomplishment_percentage < 50) return "linear-gradient(90deg,#e74c3c,#f1c40f)";
+  if (p.accomplishment_percentage < 100) return "linear-gradient(90deg,#f1c40f,#2ecc71)";
+  return "#2ecc71";
 }
 
 /* RENDER */
@@ -81,59 +73,42 @@ function render() {
 
     card.innerHTML = `
       <div class="left" style="background:${getColor(p)}">
-        <input class="titleInput" value="${p.project}">
+        <div style="width:100%">
+          <input class="titleInput"
+            value="${p.project}"
+            onchange="projects[${index}].project=this.value">
+          <div class="sub">${p.sub_department || ""}</div>
+        </div>
       </div>
 
       <div class="middle">
-        <input placeholder="Sub Dept" value="${p.sub_department}">
-        <input placeholder="Brand" value="${p.brand}">
-        <input placeholder="Project Head" value="${p.project_head}">
+        <input value="${p.brand}"
+          onchange="projects[${index}].brand=this.value">
+        <input value="${p.project_head}"
+          onchange="projects[${index}].project_head=this.value">
       </div>
 
       <div class="right">
-        <input type="number" value="${p.accomplishment_percentage}">
+        <input type="number"
+          value="${p.accomplishment_percentage}"
+          onchange="projects[${index}].accomplishment_percentage=this.value">
 
         <div class="dates">
-          <input type="date" value="${p.date_started}">
-          <input type="date" value="${p.deadline}">
+          <input type="date"
+            value="${p.date_started}"
+            onchange="projects[${index}].date_started=this.value">
+          <input type="date"
+            value="${p.deadline}"
+            onchange="projects[${index}].deadline=this.value">
         </div>
 
-        <input placeholder="Remarks" value="${p.remarks}">
-
-        <select>
-          <option ${p.status==="ON-GOING"?"selected":""}>ON-GOING</option>
-          <option ${p.status==="PENDING"?"selected":""}>PENDING</option>
-          <option ${p.status==="COMPLETE"?"selected":""}>COMPLETE</option>
-          <option ${p.status==="CANCELLED"?"selected":""}>CANCELLED</option>
-        </select>
-
-        <button class="delete">DELETE</button>
+        <div class="bottom">
+          <input value="${p.status}"
+            onchange="projects[${index}].status=this.value">
+          <div class="delete" onclick="deleteProject(${index})">🗑</div>
+        </div>
       </div>
     `;
-
-    /* BIND INPUTS SAFELY */
-    const inputs = card.querySelectorAll("input, select");
-
-    inputs[0].onchange = e => p.project = e.target.value;
-    inputs[1].onchange = e => p.sub_department = e.target.value;
-    inputs[2].onchange = e => p.brand = e.target.value;
-    inputs[3].onchange = e => p.project_head = e.target.value;
-    inputs[4].onchange = e => p.accomplishment_percentage = e.target.value;
-    inputs[5].onchange = e => p.date_started = e.target.value;
-    inputs[6].onchange = e => p.deadline = e.target.value;
-    inputs[7].onchange = e => p.remarks = e.target.value;
-
-    card.querySelector("select").onchange = e => {
-      p.status = e.target.value;
-      render(); // refresh color
-    };
-
-    card.querySelector(".delete").onclick = () => {
-      if(confirm("Delete project?")) {
-        projects.splice(index, 1);
-        render();
-      }
-    };
 
     container.appendChild(card);
   });
@@ -141,28 +116,50 @@ function render() {
   const add = document.createElement("div");
   add.className = "add-btn";
   add.innerText = "+ Add New Project";
-  add.onclick = () => {
-    projects.push({
-      project: "",
-      sub_department: "",
-      project_head: "",
-      brand: "",
-      date_started: "",
-      deadline: "",
-      remarks: "",
-      accomplishment_percentage: 0,
-      status: "PENDING"
-    });
-    render();
-  };
-
+  add.onclick = addProject;
   container.appendChild(add);
+}
+
+/* ADD */
+function addProject() {
+  projects.push({
+    project: "",
+    sub_department: "",
+    project_head: "",
+    brand: "",
+    date_started: "",
+    deadline: "",
+    remarks: "",
+    accomplishment_percentage: 0,
+    status: ""
+  });
+  render();
+}
+
+/* DELETE */
+function deleteProject(i) {
+  if (confirm("Delete project?")) {
+    projects.splice(i, 1);
+    render();
+  }
 }
 
 /* SAVE */
 function saveData() {
   const cleanData = projects
-    .filter(p => p.project.trim() !== "");
+    .filter(p => p.project && p.project.trim() !== "")
+    .map((p, i) => ({
+      id: i + 1,
+      project: p.project,
+      sub_department: p.sub_department,
+      project_head: p.project_head,
+      brand: p.brand,
+      date_started: p.date_started,
+      deadline: p.deadline,
+      remarks: p.remarks,
+      accomplishment_percentage: Number(p.accomplishment_percentage),
+      status: p.status
+    }));
 
   fetch(API_URL, {
     method: "POST",
@@ -171,13 +168,8 @@ function saveData() {
   })
   .then(res => res.json())
   .then(res => {
-    console.log(res);
-    alert("Saved!");
+    alert(res.status);
     loadData();
-  })
-  .catch(err => {
-    console.error(err);
-    alert("Save failed");
   });
 }
 
