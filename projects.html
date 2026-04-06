@@ -1,4 +1,6 @@
 <script>
+document.addEventListener("DOMContentLoaded", () => {
+
 const API_URL = "https://script.google.com/macros/s/AKfycbxxaAX2ct3FWRAEuuo26IjzU8xnGxg722zgKc8qSAusRxVlahr2iqnPIew3Vmb_CNFZ/exec";
 
 let projects = [];
@@ -13,7 +15,6 @@ function loadData() {
   fetch(API_URL)
     .then(res => res.json())
     .then(data => {
-
       projects = data.map(row => ({
         project: row[1] || "",
         sub_department: row[2] || "",
@@ -76,7 +77,6 @@ function render() {
           <input class="titleInput"
             value="${p.project}"
             onchange="projects[${index}].project=this.value">
-
           <div class="sub">${p.sub_department || ""}</div>
         </div>
       </div>
@@ -84,13 +84,12 @@ function render() {
       <div class="middle">
         <input value="${p.brand}"
           onchange="projects[${index}].brand=this.value">
-
         <input value="${p.project_head}"
           onchange="projects[${index}].project_head=this.value">
       </div>
 
       <div class="right">
-        <input type="number" min="0" max="100"
+        <input type="number"
           value="${p.accomplishment_percentage}"
           onchange="projects[${index}].accomplishment_percentage=this.value">
 
@@ -98,7 +97,6 @@ function render() {
           <input type="date"
             value="${p.date_started}"
             onchange="projects[${index}].date_started=this.value">
-
           <input type="date"
             value="${p.deadline}"
             onchange="projects[${index}].deadline=this.value">
@@ -107,7 +105,6 @@ function render() {
         <div class="bottom">
           <input value="${p.status}"
             onchange="projects[${index}].status=this.value">
-
           <div class="delete" onclick="deleteProject(${index})">🗑</div>
         </div>
       </div>
@@ -116,7 +113,6 @@ function render() {
     container.appendChild(card);
   });
 
-  // ADD BUTTON
   const add = document.createElement("div");
   add.className = "add-btn";
   add.innerText = "+ Add New Project";
@@ -137,7 +133,6 @@ function addProject() {
     accomplishment_percentage: 0,
     status: ""
   });
-
   render();
 }
 
@@ -173,14 +168,9 @@ function saveData() {
   })
   .then(res => res.json())
   .then(res => {
-    if (res.status === "success") {
-      alert("Saved successfully!");
-      loadData();
-    } else {
-      alert("Save error: " + res.message);
-    }
-  })
-  .catch(err => alert("Network error: " + err.message));
+    alert(res.status);
+    loadData();
+  });
 }
 
 /* EVENTS */
@@ -190,4 +180,6 @@ headFilter.onchange = render;
 
 /* INIT */
 loadData();
+
+});
 </script>
