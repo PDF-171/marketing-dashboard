@@ -1,190 +1,12 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Projects Dashboard</title>
-
-<style>
-body {
-  margin: 0;
-  font-family: Arial;
-  background: #f2f2f2;
-}
-
-/* HEADER */
-.header {
-  position: sticky;
-  top: 0;
-  background: white;
-  padding: 10px;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  z-index: 10;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-}
-
-.header input, .header select {
-  padding: 6px;
-}
-
-.container {
-  padding: 10px;
-}
-
-/* CARD */
-.card {
-  display: flex;
-  height: 14vh;
-  margin-bottom: 10px;
-  border-radius: 10px;
-  overflow: hidden;
-  background: white;
-}
-
-/* LEFT */
-.left {
-  width: 50%;
-  display: flex;
-  align-items: center;
-  padding: 15px;
-  color: white;
-}
-
-.titleInput {
-  font-size: 16px;
-  font-weight: bold;
-  border: none;
-  background: transparent;
-  color: white;
-  width: 100%;
-}
-
-.sub {
-  font-size: 12px;
-  opacity: 0.8;
-}
-
-/* MIDDLE */
-.middle {
-  width: 25%;
-  display: flex;
-  flex-direction: column;
-}
-
-.middle input {
-  height: 50%;
-  border: none;
-  padding: 8px;
-  border-bottom: 1px solid #ddd;
-}
-
-/* RIGHT */
-.right {
-  width: 25%;
-  display: flex;
-  flex-direction: column;
-}
-
-.right input {
-  border: none;
-  padding: 6px;
-  border-bottom: 1px solid #ddd;
-}
-
-/* dates */
-.dates {
-  display: flex;
-}
-
-.dates input {
-  width: 50%;
-}
-
-/* bottom */
-.bottom {
-  display: flex;
-}
-
-.bottom input {
-  width: 70%;
-}
-
-.delete {
-  width: 30%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: red;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-/* ADD BUTTON */
-.add-btn {
-  background: white;
-  border: 2px dashed #999;
-  padding: 15px;
-  text-align: center;
-  cursor: pointer;
-  border-radius: 10px;
-  margin-top: 10px;
-}
-
-/* FLOATING BUTTONS */
-.scrollTop {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background: black;
-  color: white;
-  padding: 10px;
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-.saveFloating {
-  position: fixed;
-  bottom: 70px;
-  right: 20px;
-  background: #1877f2;
-  color: white;
-  padding: 10px 14px;
-  border-radius: 20px;
-  cursor: pointer;
-  font-weight: bold;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-}
-</style>
-</head>
-
-<body>
-
-<!-- HEADER -->
-<div class="header">
-  <input type="text" id="search" placeholder="Search project...">
-
-  <select id="brandFilter">
-    <option value="">All Brands</option>
-  </select>
-
-  <select id="headFilter">
-    <option value="">All Project Heads</option>
-  </select>
-</div>
-
-<!-- CONTENT -->
-<div class="container" id="container"></div>
-
-<!-- FLOATING BUTTONS -->
-<div class="scrollTop" onclick="window.scrollTo({top:0, behavior:'smooth'})">⬆</div>
-<div class="saveFloating" onclick="saveData()">SAVE</div>
-
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxxaAX2ct3FWRAEuuo26IjzU8xnGxg722zgKc8qSAusRxVlahr2iqnPIew3Vmb_CNFZ/exec";
+
 let projects = [];
 
 const container = document.getElementById("container");
+const search = document.getElementById("search");
+const brandFilter = document.getElementById("brandFilter");
+const headFilter = document.getElementById("headFilter");
 
 /* LOAD */
 function loadData() {
@@ -203,7 +25,7 @@ function loadData() {
         accomplishment_percentage: Number(row[8]) || 0,
         status: row[9] || ""
       }))
-      .filter(p => p.project.trim() !== ""); // hide empty rows
+      .filter(p => p.project.trim() !== "");
 
       initFilters();
       render();
@@ -242,17 +64,18 @@ function render() {
     (p.project || "").toLowerCase().includes(search.value.toLowerCase())
   );
 
-  filtered.forEach((p, i) => {
+  filtered.forEach(p => {
+    const index = projects.indexOf(p);
+
     const card = document.createElement("div");
     card.className = "card";
 
     card.innerHTML = `
       <div class="left" style="background:${getColor(p)}">
         <div style="width:100%">
-          <!-- EDITABLE PROJECT NAME -->
           <input class="titleInput"
             value="${p.project}"
-            onchange="projects[${i}].project=this.value">
+            onchange="projects[${index}].project=this.value">
 
           <div class="sub">${p.sub_department || ""}</div>
         </div>
@@ -260,32 +83,32 @@ function render() {
 
       <div class="middle">
         <input value="${p.brand}"
-          onchange="projects[${i}].brand=this.value">
+          onchange="projects[${index}].brand=this.value">
 
         <input value="${p.project_head}"
-          onchange="projects[${i}].project_head=this.value">
+          onchange="projects[${index}].project_head=this.value">
       </div>
 
       <div class="right">
         <input type="number" min="0" max="100"
           value="${p.accomplishment_percentage}"
-          onchange="projects[${i}].accomplishment_percentage=this.value">
+          onchange="projects[${index}].accomplishment_percentage=this.value">
 
         <div class="dates">
           <input type="date"
             value="${p.date_started}"
-            onchange="projects[${i}].date_started=this.value">
+            onchange="projects[${index}].date_started=this.value">
 
           <input type="date"
             value="${p.deadline}"
-            onchange="projects[${i}].deadline=this.value">
+            onchange="projects[${index}].deadline=this.value">
         </div>
 
         <div class="bottom">
           <input value="${p.status}"
-            onchange="projects[${i}].status=this.value">
+            onchange="projects[${index}].status=this.value">
 
-          <div class="delete" onclick="deleteProject(${i})">🗑</div>
+          <div class="delete" onclick="deleteProject(${index})">🗑</div>
         </div>
       </div>
     `;
@@ -293,7 +116,7 @@ function render() {
     container.appendChild(card);
   });
 
-  // ADD NEW PROJECT BUTTON
+  // ADD BUTTON
   const add = document.createElement("div");
   add.className = "add-btn";
   add.innerText = "+ Add New Project";
@@ -326,22 +149,22 @@ function deleteProject(i) {
   }
 }
 
-/* SAFE SAVE */
+/* SAVE */
 function saveData() {
   const cleanData = projects
     .filter(p => p.project && p.project.trim() !== "")
-    .map((p, i) => ([
-      i + 1,
-      p.project,
-      p.sub_department,
-      p.project_head,
-      p.brand,
-      p.date_started,
-      p.deadline,
-      p.remarks,
-      Number(p.accomplishment_percentage),
-      p.status
-    ]));
+    .map((p, i) => ({
+      id: i + 1,
+      project: p.project,
+      sub_department: p.sub_department,
+      project_head: p.project_head,
+      brand: p.brand,
+      date_started: p.date_started,
+      deadline: p.deadline,
+      remarks: p.remarks,
+      accomplishment_percentage: Number(p.accomplishment_percentage),
+      status: p.status
+    }));
 
   fetch(API_URL, {
     method: "POST",
@@ -368,6 +191,3 @@ headFilter.onchange = render;
 /* INIT */
 loadData();
 </script>
-
-</body>
-</html>
