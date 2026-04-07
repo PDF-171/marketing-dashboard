@@ -18,6 +18,27 @@
   }
   header img { height: 48px; }
 
+  .header-inner {
+  width: 100%;
+  max-width: 1200px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.home-btn {
+  background: white;
+  color: #1877f2;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.home-btn:hover {
+  background: #e6e6e6;
+}
+
   .table-wrapper { overflow-x:auto; padding:1rem; }
 
   table { width:100%; border-collapse:collapse; background:white; min-width:600px; }
@@ -67,7 +88,13 @@
 <body>
 
 <header>
-  <img src="logo.svg" alt="Company Logo">
+  <div class="header-inner">
+    <img src="logo.svg" alt="Company Logo">
+
+    <div class="home-btn" id="homeBtn">
+      🏠 HOME
+    </div>
+  </div>
 </header>
 
 <div id="successBanner" class="banner success"></div>
@@ -98,6 +125,14 @@
    CONFIG
 ================================= */
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw3bghTjbFKs4B3Dm6H7_DBMbFw3-o1yPnqRVQGkJv2a_vZ8nAeJAu1bxgEM4EhPqdMyA/exec";
+
+const homeBtn = document.getElementById("homeBtn");
+
+if (homeBtn) {
+  homeBtn.onclick = () => {
+    window.location.href = "index.html"; // or your homepage
+  };
+}
 
 const BRANDS = [
   "team_ridemax","apollo_tyres","cooper","arivo_tires","atlander",
