@@ -321,15 +321,16 @@ function saveData() {
 
   fetch(API_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    mode: "no-cors"
     body: JSON.stringify(cleanData)
   })
-  .then(res => res.json())
-  .then(res => {
-    alert("Saved successfully!");
-    loadData();
+  .then(() => {
+    alert("Saved (no-cors mode)");
+    setTimeout(loadData, 1000); // reload after delay
   })
-  .catch(() => alert("Save failed"));
+  .catch(() => {
+    alert("Save failed");
+  });
 }
 
 /* EVENTS */
