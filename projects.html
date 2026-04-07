@@ -28,6 +28,20 @@ body {
   padding: 6px;
 }
 
+.home-btn {
+  margin-left: auto;
+  background: #333;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.home-btn:hover {
+  background: #555;
+}
+
+/* CONTAINER */
 .container {
   padding: 10px;
 }
@@ -85,23 +99,6 @@ body {
   border-bottom: 1px solid #ddd;
 }
 
-.home-btn {
-  margin-left: auto; /* pushes to right */
-  background: #333;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.home-btn:hover {
-  background: #555;
-}
-
 /* DATES */
 .dates {
   display: flex;
@@ -119,7 +116,7 @@ body {
   padding: 8px;
 }
 
-/* ADD BUTTON */
+/* ADD */
 .add-btn {
   background: white;
   border: 2px dashed #999;
@@ -158,6 +155,7 @@ body {
 
 <body>
 
+<!-- HEADER -->
 <div class="header">
   <input type="text" id="search" placeholder="Search project...">
 
@@ -168,10 +166,14 @@ body {
   <select id="headFilter">
     <option value="">All Project Heads</option>
   </select>
+
+  <div class="home-btn" id="homeBtn">🏠 HOME</div>
 </div>
 
+<!-- CONTENT -->
 <div class="container" id="container"></div>
 
+<!-- FLOATING -->
 <div class="scrollTop" onclick="window.scrollTo({top:0, behavior:'smooth'})">⬆</div>
 <div class="saveFloating" id="saveBtn">SAVE</div>
 
@@ -187,13 +189,15 @@ const search = document.getElementById("search");
 const brandFilter = document.getElementById("brandFilter");
 const headFilter = document.getElementById("headFilter");
 
+/* HOME BUTTON */
 const homeBtn = document.getElementById("homeBtn");
+if (homeBtn) {
+  homeBtn.onclick = () => {
+    window.location.href = "index.html";
+  };
+}
 
-homeBtn.onclick = () => {
-  window.location.href = "index.html"; // change if needed
-};
-
-/* FORMAT DATE */
+/* DATE FORMAT */
 function formatDate(d) {
   if (!d) return "";
   return new Date(d).toISOString().split("T")[0];
@@ -348,12 +352,10 @@ function saveData() {
     body: JSON.stringify(cleanData)
   })
   .then(() => {
-    alert("Saved (no-cors mode)");
-    setTimeout(loadData, 1000); // reload after delay
+    alert("Saved!");
+    setTimeout(loadData, 1000);
   })
-  .catch(() => {
-    alert("Save failed");
-  });
+  .catch(() => alert("Save failed"));
 }
 
 /* EVENTS */
@@ -362,8 +364,7 @@ brandFilter.onchange = render;
 headFilter.onchange = render;
 
 /* SAVE BUTTON */
-const saveBtn = document.getElementById("saveBtn");
-saveBtn.onclick = saveData;
+document.getElementById("saveBtn").onclick = saveData;
 
 /* INIT */
 loadData();
