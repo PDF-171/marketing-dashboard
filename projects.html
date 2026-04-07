@@ -85,6 +85,23 @@ body {
   border-bottom: 1px solid #ddd;
 }
 
+.home-btn {
+  margin-left: auto; /* pushes to right */
+  background: #333;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.home-btn:hover {
+  background: #555;
+}
+
 /* DATES */
 .dates {
   display: flex;
@@ -169,6 +186,12 @@ const container = document.getElementById("container");
 const search = document.getElementById("search");
 const brandFilter = document.getElementById("brandFilter");
 const headFilter = document.getElementById("headFilter");
+
+const homeBtn = document.getElementById("homeBtn");
+
+homeBtn.onclick = () => {
+  window.location.href = "index.html"; // change if needed
+};
 
 /* FORMAT DATE */
 function formatDate(d) {
