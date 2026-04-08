@@ -86,6 +86,12 @@ body {
   border-bottom: 1px solid #ddd;
 }
 
+.middle select {
+  border: none;
+  padding: 6px;
+  border-bottom: 1px solid #ddd;
+}
+
 /* RIGHT */
 .right {
   width: 35%;
@@ -103,6 +109,7 @@ body {
 .dates {
   display: flex;
 }
+
 .dates input {
   width: 50%;
 }
@@ -155,7 +162,6 @@ body {
 
 <body>
 
-<!-- HEADER -->
 <div class="header">
   <input type="text" id="search" placeholder="Search project...">
 
@@ -170,10 +176,8 @@ body {
   <div class="home-btn" id="homeBtn">🏠 HOME</div>
 </div>
 
-<!-- CONTENT -->
 <div class="container" id="container"></div>
 
-<!-- FLOATING -->
 <div class="scrollTop" onclick="window.scrollTo({top:0, behavior:'smooth'})">⬆</div>
 <div class="saveFloating" id="saveBtn">SAVE</div>
 
@@ -189,15 +193,10 @@ const search = document.getElementById("search");
 const brandFilter = document.getElementById("brandFilter");
 const headFilter = document.getElementById("headFilter");
 
-/* HOME BUTTON */
-const homeBtn = document.getElementById("homeBtn");
-if (homeBtn) {
-  homeBtn.onclick = () => {
-    window.location.href = "index.html";
-  };
-}
+document.getElementById("homeBtn").onclick = () => {
+  window.location.href = "index.html";
+};
 
-/* DATE FORMAT */
 function formatDate(d) {
   if (!d) return "";
   return new Date(d).toISOString().split("T")[0];
@@ -258,8 +257,6 @@ function render() {
   );
 
   filtered.forEach(p => {
-    const index = projects.indexOf(p);
-
     const card = document.createElement("div");
     card.className = "card";
 
@@ -270,7 +267,14 @@ function render() {
 
       <div class="middle">
         <input placeholder="Sub Department" value="${p.sub_department}">
-        <input placeholder="Brand" value="${p.brand}">
+        <select>
+          <option value="team_ridemax" ${p.brand==="team_ridemax"?"selected":""}>team_ridemax</option>
+          <option value="apollo_tyres" ${p.brand==="apollo_tyres"?"selected":""}>apollo_tyres</option>
+          <option value="cooper" ${p.brand==="cooper"?"selected":""}>cooper</option>
+          <option value="arivo_tires" ${p.brand==="arivo_tires"?"selected":""}>arivo_tires</option>
+          <option value="atlander" ${p.brand==="atlander"?"selected":""}>atlander</option>
+        </select>
+
         <input placeholder="Project Head" value="${p.project_head}">
       </div>
 
@@ -284,7 +288,7 @@ function render() {
 
         <input placeholder="Remarks" value="${p.remarks}">
 
-        <select>
+        <select class="statusSelect">
           <option ${p.status==="ON-GOING"?"selected":""}>ON-GOING</option>
           <option ${p.status==="PENDING"?"selected":""}>PENDING</option>
           <option ${p.status==="COMPLETE"?"selected":""}>COMPLETE</option>
@@ -295,25 +299,35 @@ function render() {
       </div>
     `;
 
-    const inputs = card.querySelectorAll("input, select");
+    /* bindings */
+    const title = card.querySelector(".titleInput");
+    const sub = card.querySelector(".middle input");
+    const brand = card.querySelector(".middle select");
+    const head = card.querySelector("input[placeholder='Project Head']");
+    const percent = card.querySelector("input[type='number']");
+    const dates = card.querySelectorAll("input[type='date']");
+    const remarks = card.querySelector("input[placeholder='Remarks']");
+    const statusSelect = card.querySelector(".statusSelect");
 
-    inputs[0].onchange = e => p.project = e.target.value;
-    inputs[1].onchange = e => p.sub_department = e.target.value;
-    inputs[2].onchange = e => p.brand = e.target.value;
-    inputs[3].onchange = e => p.project_head = e.target.value;
-    inputs[4].onchange = e => p.accomplishment_percentage = e.target.value;
-    inputs[5].onchange = e => p.date_started = e.target.value;
-    inputs[6].onchange = e => p.deadline = e.target.value;
-    inputs[7].onchange = e => p.remarks = e.target.value;
+    title.onchange = e => p.project = e.target.value;
+    sub.onchange = e => p.sub_department = e.target.value;
+    brand.onchange = e => p.brand = e.target.value;
+    head.onchange = e => p.project_head = e.target.value;
+    percent.onchange = e => p.accomplishment_percentage = e.target.value;
+    dates[0].onchange = e => p.date_started = e.target.value;
+    dates[1].onchange = e => p.deadline = e.target.value;
+    remarks.onchange = e => p.remarks = e.target.value;
 
-    card.querySelector("select").onchange = e => {
+    /* FIXED STATUS (ONLY ONE HANDLER) */
+    statusSelect.onchange = e => {
       p.status = e.target.value;
-      render();
+      card.querySelector(".left").style.background = getColor(p);
     };
 
     card.querySelector(".delete").onclick = () => {
       if(confirm("Delete project?")) {
-        projects.splice(index, 1);
+        const idx = projects.indexOf(p);
+        projects.splice(idx, 1);
         render();
       }
     };
@@ -342,31 +356,24 @@ function render() {
   container.appendChild(add);
 }
 
-/* SAVE */
-function saveData() {
+/* EVENTS */
+search.oninput = render;
+brandFilter.onchange = render;
+headFilter.onchange = render;
+
+document.getElementById("saveBtn").onclick = () => {
   const cleanData = projects.filter(p => p.project.trim() !== "");
 
   fetch(API_URL, {
     method: "POST",
     mode: "no-cors",
     body: JSON.stringify(cleanData)
-  })
-  .then(() => {
+  }).then(() => {
     alert("Saved!");
-    setTimeout(loadData, 1000);
-  })
-  .catch(() => alert("Save failed"));
-}
+    loadData();
+  });
+};
 
-/* EVENTS */
-search.oninput = render;
-brandFilter.onchange = render;
-headFilter.onchange = render;
-
-/* SAVE BUTTON */
-document.getElementById("saveBtn").onclick = saveData;
-
-/* INIT */
 loadData();
 
 });
