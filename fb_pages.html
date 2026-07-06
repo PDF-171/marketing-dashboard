@@ -170,7 +170,7 @@ function buildTable() {
 
   BRANDS.forEach(brand => {
 
-    const oldVal = OLD_VALUES[brand] || 0;
+    const oldVal = (OLD_VALUES[brand] && OLD_VALUES[brand].value) || 0;
 
     const tr = document.createElement("tr");
 
